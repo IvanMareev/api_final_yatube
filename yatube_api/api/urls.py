@@ -1,12 +1,17 @@
 from django.urls import include, path
-from rest_framework.authtoken import views
 from rest_framework.routers import SimpleRouter
 
+from .views import PostViewSet, GroupViewSet, CommentViewSet, FollowViewSet
+
 router = SimpleRouter()
+router.register(r'posts', PostViewSet, basename='post')
+router.register('groups', GroupViewSet)
+router.register('comments', CommentViewSet)
+router.register('follow', FollowViewSet)
+
 
 urlpatterns = [
     path('', include('djoser.urls')),
-    # JWT-эндпоинты, для управления JWT-токенами:
     path('', include('djoser.urls.jwt')),
     path('', include(router.urls)),
 ]
