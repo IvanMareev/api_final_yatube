@@ -39,6 +39,6 @@ class FollowSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return {
-                'user': instance.user.username,
-                'following': instance.following.username,
+            'user': instance.user.username,
+            'following': instance.following.username,
         }
