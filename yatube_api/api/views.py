@@ -10,7 +10,6 @@ from rest_framework.decorators import action
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.exceptions import MethodNotAllowed
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -25,20 +24,20 @@ class PostViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance = self.get_object()
         if instance.author != self.request.user:
-            raise PermissionDenied("You do not have permission to delete this post.")
+            str = "You do not have permission to delete this post."
+            raise PermissionDenied(str)
         instance.delete()
-    
+
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         if instance.author != request.user:
             return Response(status=status.HTTP_403_FORBIDDEN)
         
-        serializer = self.get_serializer(instance, data=request.data, partial=False)
+        serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
         self.perform_update(serializer)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
     @action(detail=True, methods=['get', 'post'], url_path='comments')
     def comments(self, request, pk=None):
@@ -95,9 +94,12 @@ class GroupViewSet(viewsets.ModelViewSet):
 
     # def perform_update(self, serializer):
     #     return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-    
+
     def perform_create(self, serializer):
-        raise MethodNotAllowed(detail="Группу можно создавать только через админку.")
+        return Response(
+            {'detail': 'Группу можно создавать только через админку.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
         # return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
@@ -125,3 +127,4 @@ class FollowViewSet(viewsets.ModelViewSet):
         following_user = self.request.data.get('following')
         user = get_object_or_404(User, username=following_user)
         serializer.save(user=self.request.user, following=user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
