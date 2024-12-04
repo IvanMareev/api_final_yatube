@@ -32,7 +32,7 @@ class PostViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         if instance.author != request.user:
             return Response(status=status.HTTP_403_FORBIDDEN)
-        
+
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -122,7 +122,7 @@ class FollowViewSet(viewsets.ModelViewSet):
         queryset = Follow.objects.filter(user=request.user)
         serializer = FollowSerializer(queryset, many=True)
         return Response(serializer.data)
-    
+
     def perform_create(self, serializer):
         following_user = self.request.data.get('following')
         user = get_object_or_404(User, username=following_user)
