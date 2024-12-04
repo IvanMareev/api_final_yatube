@@ -7,7 +7,7 @@ router = SimpleRouter()
 router.register(r'posts', PostViewSet, basename='post')
 router.register('groups', GroupViewSet)
 router.register('comments', CommentViewSet)
-router.register('follow', FollowViewSet)
+router.register(r'follow', FollowViewSet, basename='follow')
 
 
 urlpatterns = [

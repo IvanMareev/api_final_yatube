@@ -92,15 +92,8 @@ class GroupViewSet(viewsets.ModelViewSet):
     pagination_class = LimitOffsetPagination
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
-    # def perform_update(self, serializer):
-    #     return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    def perform_create(self, serializer):
-        return Response(
-            {'detail': 'Группу можно создавать только через админку.'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
-        # return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    def create(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -116,15 +109,21 @@ class FollowViewSet(viewsets.ModelViewSet):
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
     pagination_class = LimitOffsetPagination
-    search_fields = ('^following__username',)
+    search_fields = ('following__username',)
 
     def list(self, request):
         queryset = Follow.objects.filter(user=request.user)
+        sq = request.query_params.get('search', None)
+        if sq:
+            sq = sq
+            queryset = queryset.filter(following__username__icontains=sq)
         serializer = FollowSerializer(queryset, many=True)
         return Response(serializer.data)
 
     def perform_create(self, serializer):
         following_user = self.request.data.get('following')
         user = get_object_or_404(User, username=following_user)
-        serializer.save(user=self.request.user, following=user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        if serializer.is_valid():
+            serializer.save(user=self.request.user, following=user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
