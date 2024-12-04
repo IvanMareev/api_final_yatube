@@ -22,6 +22,24 @@ class PostViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
+    def perform_destroy(self, instance):
+        instance = self.get_object()
+        if instance.author != self.request.user:
+            raise PermissionDenied("You do not have permission to delete this post.")
+        instance.delete()
+    
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.author != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=False)
+        serializer.is_valid(raise_exception=True)
+
+        self.perform_update(serializer)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
     @action(detail=True, methods=['get', 'post'], url_path='comments')
     def comments(self, request, pk=None):
         post = get_object_or_404(Post, pk=pk)
@@ -75,8 +93,12 @@ class GroupViewSet(viewsets.ModelViewSet):
     pagination_class = LimitOffsetPagination
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
-    def perform_update(self, serializer):
-        raise MethodNotAllowed("Обновление группы не разрешено.")
+    # def perform_update(self, serializer):
+    #     return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    def perform_create(self, serializer):
+        raise MethodNotAllowed(detail="Группу можно создавать только через админку.")
+        # return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -92,9 +114,14 @@ class FollowViewSet(viewsets.ModelViewSet):
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
     pagination_class = LimitOffsetPagination
+    search_fields = ('^following__username',)
 
+    def list(self, request):
+        queryset = Follow.objects.filter(user=request.user)
+        serializer = FollowSerializer(queryset, many=True)
+        return Response(serializer.data)
+    
     def perform_create(self, serializer):
         following_user = self.request.data.get('following')
         user = get_object_or_404(User, username=following_user)
         serializer.save(user=self.request.user, following=user)
-        return Response(serializer.data)
